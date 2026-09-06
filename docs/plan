@@ -1,0 +1,15 @@
+Develop s/w to manage Identity and Access Management using .Net
+
+Why?
+- Want to understand, how I design and architect this kind of solution and scale
+- Gain expertise in techinal concepts involved in this niche.
+
+Flow
+- Design the signup and login page
+- Setup Database (temporary)
+- Connect to Microsoft for SSO
+- Fetch data from Microsoft Entra
+- Provision and Deprovision users in Microsoft Entra
+- Add one more connector for user provision and deprovisioning
+- Design database
+- Add more connectors

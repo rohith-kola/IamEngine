@@ -1,0 +1,18 @@
+## .NET build artifacts
+bin/
+obj/
+*.user
+
+## IDE
+.vs/
+.vscode/
+*.suo
+
+## OS
+.DS_Store
+
+## Project-specific
+docs/internal/
+*.db
+*.db-shm
+*.db-wal

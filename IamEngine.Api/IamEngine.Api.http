@@ -1,0 +1,6 @@
+@IamEngine.Api_HostAddress = http://localhost:5279
+
+GET {{IamEngine.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

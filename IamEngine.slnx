@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IamEngine.Api/IamEngine.Api.csproj" />
+  <Project Path="IamEngine.Application/IamEngine.Application.csproj" />
+  <Project Path="IamEngine.Connectors.Abstractions/IamEngine.Connectors.Abstractions.csproj" />
+  <Project Path="IamEngine.Domain/IamEngine.Domain.csproj" />
+  <Project Path="IamEngine.Infrastructure/IamEngine.Infrastructure.csproj" />
+</Solution>

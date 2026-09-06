@@ -1,0 +1,75 @@
+Step - 0
+Install .NET 10 SDK
+
+Step - 1 (Scaffold the solution)
+Create template "Solution File":
+```
+dotnet new sln -n IamEngine
+```
+
+Create template "ASP.NET Core Web API"
+```
+dotnet new webapi -n IamEngine.Api
+```
+
+Create template "Class Library"
+```
+dotnet new classlib -n IamEngine.Application
+dotnet new classlib -n IamEngine.Domain
+dotnet new classlib -n IamEngine.Infrastructure
+dotnet new classlib -n IamEngine.Connectors.Abstractions
+```
+
+Add projects to solution:
+```
+dotnet sln add IamEngine.Api/IamEngine.Api.csproj IamEngine.Application/IamEngine.Application.csproj IamEngine.Domain/IamEngine.Domain.csproj IamEngine.Infrastructure/IamEngine.Infrastructure.csproj IamEngine.Connectors.Abstractions/IamEngine.Connectors.Abstractions.csproj
+```
+
+Add references to project:
+```
+dotnet add IamEngine.Application reference IamEngine.Domain
+dotnet add IamEngine.Infrastructure reference IamEngine.Application
+dotnet add IamEngine.Infrastructure reference IamEngine.Connectors.Abstractions
+dotnet add IamEngine.Api reference IamEngine.Application
+dotnet add IamEngine.Api reference IamEngine.Infrastructure
+```
+
+Step - 2 (Install Packages)
+```
+cd IamEngine.Api
+dotnet add package Microsoft.Identity.Web
+dotnet add package Microsoft.Identity.Web.MicrosoftGraph
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+
+cd ../IamEngine.Infrastructure
+dotnet add package Microsoft.Graph
+dotnet add package Azure.Identity
+dotnet add package Microsoft.EntityFrameworkCore
+```
+
+
+Step - 3 (Store your credentials in user secrets)
+```
+cd ../IamEngine.Api
+dotnet user-secrets init
+dotnet user-secrets set "AzureAd:TenantId" "<paste your Tenant ID>"
+dotnet user-secrets set "AzureAd:ClientId" "<paste your Client ID>"
+dotnet user-secrets set "AzureAd:ClientSecret" "<paste your Client Secret value>"
+```
+
+Step - 4 (appsettings.json (non-secret config only))
+```
+// Append to IamEngine.Api/appsettings.json
+{
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "CallbackPath": "/signin-oidc",
+    "SignedOutCallbackPath": "/signout-callback-oidc"
+  },
+  "ConnectionStrings": {
+    "Default": "Data Source=iamengine.db"
+  }
+}
+```
