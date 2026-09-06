@@ -1,0 +1,172 @@
+Step 1 — Domain entities
+
+Create these files in IamEngine.Domain (delete the placeholder Class1.cs first):
+```
+// IamEngine.Domain/Entities/AppUser.cs
+using Microsoft.AspNetCore.Identity;
+
+namespace IamEngine.Domain.Entities;
+
+public class AppUser : IdentityUser<Guid>
+{
+    public string DisplayName { get; set; } = default!;
+    public UserSource Source { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAtUtc { get; set; }
+    public ICollection<ExternalIdentityMapping> ExternalIdentities { get; set; } = new List<ExternalIdentityMapping>();
+}
+
+public enum UserSource { Local, EntraSso, Provisioned }
+```
+
+
+```
+// IamEngine.Domain/Entities/ExternalIdentityMapping.cs
+namespace IamEngine.Domain.Entities;
+
+public class ExternalIdentityMapping
+{
+    public Guid Id { get; set; }
+    public Guid AppUserId { get; set; }
+    public AppUser AppUser { get; set; } = default!;
+    public string ConnectorKey { get; set; } = default!;
+    public string ExternalId { get; set; } = default!;
+    public DateTime LastSyncedUtc { get; set; }
+}
+```
+
+
+```
+// IamEngine.Domain/Entities/ConnectorConfig.cs
+namespace IamEngine.Domain.Entities;
+
+public class ConnectorConfig
+{
+    public Guid Id { get; set; }
+    public string Key { get; set; } = default!;
+    public string ConnectorType { get; set; } = default!;
+    public string ConfigJson { get; set; } = default!;
+    public bool Enabled { get; set; } = true;
+}
+```
+
+```
+// IamEngine.Domain/Entities/ProvisioningEvent.cs
+namespace IamEngine.Domain.Entities;
+
+public class ProvisioningEvent
+{
+    public Guid Id { get; set; }
+    public Guid AppUserId { get; set; }
+    public string ConnectorKey { get; set; } = default!;
+    public string Action { get; set; } = default!;
+    public string Status { get; set; } = default!;
+    public string? Details { get; set; }
+    public DateTime OccurredAtUtc { get; set; }
+}
+```
+
+```
+// AppUser inherits from IdentityUser, so IamEngine.Domain needs the Identity package:
+
+cd IamEngine.Domain
+dotnet add package Microsoft.Extensions.Identity.Stores
+```
+
+Step 2 — DbContext in Infrastructure
+
+// Delete the placeholder Class1.cs in IamEngine.Infrastructure, then:
+
+```
+// IamEngine.Infrastructure/Data/IamDbContext.cs
+using IamEngine.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace IamEngine.Infrastructure.Data;
+
+public class IamDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
+{
+    public IamDbContext(DbContextOptions<IamDbContext> options) : base(options) { }
+
+    public DbSet<ExternalIdentityMapping> ExternalIdentities => Set<ExternalIdentityMapping>();
+    public DbSet<ConnectorConfig> ConnectorConfigs => Set<ConnectorConfig>();
+    public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<ExternalIdentityMapping>()
+            .HasIndex(m => new { m.ConnectorKey, m.ExternalId })
+            .IsUnique();
+
+        builder.Entity<ConnectorConfig>()
+            .HasIndex(c => c.Key)
+            .IsUnique();
+    }
+}
+```
+
+Step 3 — Update Program.cs
+```
+// IamEngine.Api/Program.cs
+using IamEngine.Domain.Entities;
+using IamEngine.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<IamDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
+    {
+        options.Password.RequiredLength = 10;
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<IamDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+app.MapControllers();
+app.Run();
+```
+
+```
+// Confirm appsettings.json has the connection string (from earlier):
+
+{
+  "ConnectionStrings": {
+    "Default": "Data Source=iamengine.db"
+  }
+}
+```
+
+```
+cd IamEngine.Infrastructure
+dotnet add package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+```
+
+Step 4 — Run the migration
+```
+dotnet tool install --global dotnet-ef   # skip if already installed
+
+cd IamEngine.Api
+dotnet ef migrations add InitialCreate --project ../IamEngine.Infrastructure
+dotnet ef database update --project ../IamEngine.Infrastructure
+```
+
+Step - 5 (To confirm the migration actually applied and the DB file exists)
+
+```
+dotnet ef database update --project ../IamEngine.Infrastructure
+
+ls -la // You should see iamengine.db in IamEngine.Api folder.
+
+sqlite3 iamengine.db ".tables" // If you want to peek inside and confirm the Identity tables (AspNetUsers, AspNetRoles, etc.) plus your custom tables (ExternalIdentityMappings, ConnectorConfigs, ProvisioningEvents) actually got created
+```
